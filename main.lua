@@ -220,7 +220,7 @@ function love.update(dt)
 		shiftMap(0, -1)
 	end
 
-	if generation == 5000 then pause = true end -- For testing
+--	if generation == 5000 then pause = true end -- For testing
 
 end
 
@@ -239,8 +239,8 @@ function love.draw()
 			local green = 0
 			local blue = 0
 			if view_mode == 1 then -- activation with slight indication of genes
-		        red = math.tanh(grid[i][j].past_act - grid[i][j].past_act*grid[i][j].color1/8)
-		        green = math.tanh(grid[i][j].act - grid[i][j].act*grid[i][j].color2/8)
+		        red = math.tanh(grid[i][j].act - grid[i][j].act*grid[i][j].color2/8)
+		        green = math.tanh(grid[i][j].past_act - grid[i][j].past_act*grid[i][j].color1/8)
 		        blue = math.tanh(
 					grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/4
 					+ (grid[i][j].act + grid[i][j].past_act)*grid[i][j].learningrate/8
