@@ -25,8 +25,8 @@ end
 
 function initCell(i, j)
 	grid[i][j] = {
-		act = math.random()^4,  -- Neuron activation
-		past_act = math.random()^4, -- Activation of last step
+		act = 0,  -- Neuron activation
+		past_act = 0, -- Activation of last step
 		past2_act = 0, -- Activation of two steps past
 		new_act = 0,
 		color1 = math.random(),
