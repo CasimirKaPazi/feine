@@ -67,10 +67,9 @@ function updateWeights()
 			-- Update the grid to new state
 			grid[i][j].act = grid[i][j].new_act
 			-- Update weights to minimize surprise, using the qudratic loss funtion
-			-- error = (target - prediction)²
-			local err = -1 * (grid[i][j].act - grid[i][j].past_act )^2
+			local err = -2 * (grid[i][j].act - grid[i][j].past_act)
 			for w = 1, N_WEIGHTS do
-				grid[i][j].weights[w] = grid[i][j].weights[w] + grid[i][j].learningrate * err * grid[i][j].act
+				grid[i][j].weights[w] = grid[i][j].weights[w] + grid[i][j].learningrate * err * grid[i][j].act^0.5
 			end
 		end
 	end
