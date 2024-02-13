@@ -68,6 +68,7 @@ function updateWeights()
 			grid[i][j].act = grid[i][j].new_act
 			-- Update weights to minimize surprise, using the qudratic loss funtion
 			local err = -2 * (grid[i][j].act - grid[i][j].past_act)
+			grid[i][j].err = err
 			for w = 1, N_WEIGHTS do
 				grid[i][j].weights[w] = grid[i][j].weights[w] + grid[i][j].learningrate * err * grid[i][j].act^0.5
 			end
@@ -137,6 +138,12 @@ function love.keypressed(key, scancode, isrepeat)
 	elseif key == "3" then
 		prev_view_mode = view_mode
 		view_mode = 3
+	elseif key == "4" then
+		prev_view_mode = view_mode
+		view_mode = 4
+	elseif key == "5" then
+		prev_view_mode = view_mode
+		view_mode = 5
 	elseif key == "tab" then -- Switch to last used viewing mode
 		local swap = prev_view_mode
 		prev_view_mode = view_mode
@@ -163,6 +170,7 @@ function love.mousepressed(x, y, button, istouch, presses)
 			else
 				-- Print information about the cell to terminal
 				print("act = ",grid[cellX][cellY].act)
+				print("err = ",grid[cellX][cellY].err)
 				print("color1 = ",grid[cellX][cellY].color1)
 				print("color2 = ",grid[cellX][cellY].color2)
 				print("learningrate = ",grid[cellX][cellY].learningrate)
@@ -244,14 +252,22 @@ function love.draw()
 					grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/4
 					+ (grid[i][j].act + grid[i][j].past_act)*grid[i][j].learningrate/8
 				)
-			elseif view_mode == 2 then -- genes only
-		        red = math.tanh(grid[i][j].color1)
-		        green = math.tanh(grid[i][j].color2)
-		        blue = math.tanh(grid[i][j].learningrate^0.5)
+			elseif view_mode == 2 then -- error
+		        red = math.tanh(grid[i][j].err)
+		        green = math.tanh(grid[i][j].err)
+		        blue = math.tanh(grid[i][j].err)
 			elseif view_mode == 3 then -- focus learningrate
 		        red = math.tanh(grid[i][j].past_act)/16
 		        green = math.tanh(grid[i][j].act)/16
 		        blue = math.tanh(grid[i][j].learningrate^0.5)
+			elseif view_mode == 4 then -- focus color1
+		        red = math.tanh(grid[i][j].color1)
+		        green = math.tanh(grid[i][j].past_act)/16
+		        blue = math.tanh(grid[i][j].act)/16
+			elseif view_mode == 5 then -- focus color2
+		        red = math.tanh(grid[i][j].act)/16
+		        green = math.tanh(grid[i][j].color2)
+		        blue = math.tanh(grid[i][j].past_act)/16
 			end
             love.graphics.setColor(red, green, blue)
             love.graphics.rectangle("fill", x, y, CELLSIZE, CELLSIZE)

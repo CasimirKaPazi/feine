@@ -29,6 +29,7 @@ function initCell(i, j)
 		past_act = 0, -- Activation of last step
 		past2_act = 0, -- Activation of two steps past
 		new_act = 0,
+		err = 0,
 		color1 = math.random(),
 		color2 = math.random(),
 		learningrate = MIN_LEARNING + math.random()^4, -- Bias learningrate to smaller values
