@@ -30,9 +30,9 @@ function initCell(i, j)
 		past2_act = 0, -- Activation of two steps past
 		new_act = 0,
 		err = 0,
-		color1 = math.random(),
-		color2 = math.random(),
-		learningrate = MIN_LEARNING + math.random()^4, -- Bias learningrate to smaller values
+		color1 = 0,
+		memory = 0,
+		learningrate = MIN_LEARNING*2, -- memory learningrate to smaller values
 		weights = {}  -- Initialize weights for neighbors within range
 	}
 	for x = -RANGE, RANGE do
@@ -65,7 +65,7 @@ function copyGenes(i, j, nI, nJ)
 		grid[i][j].weights[w] = grid[nI][nJ].weights[w]
  	end
 	grid[i][j].color1 = grid[nI][nJ].color1
-	grid[i][j].color2 = grid[nI][nJ].color2
+	grid[i][j].memory = grid[nI][nJ].memory
 	grid[i][j].learningrate = grid[nI][nJ].learningrate
 end
 

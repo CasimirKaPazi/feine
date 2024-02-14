@@ -55,7 +55,7 @@ function updateActivation()
 			grid[i][j].past2_act = grid[i][j].past_act
 			grid[i][j].past_act = currentact
 			-- Update activation using ReLU
-			grid[i][j].new_act = math.max(0, sum)
+			grid[i][j].new_act = math.max(0, (sum + currentact*grid[i][j].memory)/(1+grid[i][j].memory))
 		end
 	end
 end
@@ -70,7 +70,7 @@ function updateWeights()
 			local err = -2 * (grid[i][j].act - grid[i][j].past_act)
 			grid[i][j].err = err
 			for w = 1, N_WEIGHTS do
-				grid[i][j].weights[w] = grid[i][j].weights[w] + grid[i][j].learningrate * err * grid[i][j].act^0.5
+				grid[i][j].weights[w] = grid[i][j].weights[w] + grid[i][j].learningrate * err * math.tanh(grid[i][j].act)
 			end
 		end
 	end
@@ -80,7 +80,7 @@ end
 function updateReproduction()
 	for i = 1, GRID_WIDTH do
 		for j = 1, GRID_HEIGHT do
-			local lower = (MIN_LEARNING / grid[i][j].learningrate)^2 / 32
+			local lower = (MIN_LEARNING / grid[i][j].learningrate + grid[i][j].memory/2)^2 / 64
 			if grid[i][j].act < lower and grid[i][j].past_act < lower and grid[i][j].past2_act < lower then
 				-- When dead, get new genes
 				local nI = (i + math.random(-1, 1))
@@ -109,13 +109,16 @@ function updateMutation()
 		if m == 1 then
 			grid[i][j].color1 = mutate(grid[i][j].color1)
 		elseif m == 2 then
-			grid[i][j].color2 = mutate(grid[i][j].color2)
+			grid[i][j].memory = mutate(grid[i][j].memory)
 		elseif m == 3 then
 			grid[i][j].learningrate = mutate(grid[i][j].learningrate)
 		end
 		-- Cells tend to prefer the lowest possible learningrate. Make sure it doesn't drop to zero.
 		if grid[i][j].learningrate < MIN_LEARNING then
 			grid[i][j].learningrate = MIN_LEARNING
+		end
+		if grid[i][j].memory > 1 then
+			grid[i][j].memory = 1
 		end
 	end
 end
@@ -144,6 +147,9 @@ function love.keypressed(key, scancode, isrepeat)
 	elseif key == "5" then
 		prev_view_mode = view_mode
 		view_mode = 5
+	elseif key == "6" then
+		prev_view_mode = view_mode
+		view_mode = 6
 	elseif key == "tab" then -- Switch to last used viewing mode
 		local swap = prev_view_mode
 		prev_view_mode = view_mode
@@ -172,7 +178,7 @@ function love.mousepressed(x, y, button, istouch, presses)
 				print("act = ",grid[cellX][cellY].act)
 				print("err = ",grid[cellX][cellY].err)
 				print("color1 = ",grid[cellX][cellY].color1)
-				print("color2 = ",grid[cellX][cellY].color2)
+				print("memory = ",grid[cellX][cellY].memory)
 				print("learningrate = ",grid[cellX][cellY].learningrate)
 				for w = 1, N_WEIGHTS do
 					print("weight "..w.." = ",grid[cellX][cellY].weights[w])
@@ -246,7 +252,7 @@ function love.draw()
 			local green = 0
 			local blue = 0
 			if view_mode == 1 then -- activation with slight indication of genes
-		        red = math.tanh(grid[i][j].act - grid[i][j].act*grid[i][j].color2/8)
+		        red = math.tanh(grid[i][j].act - grid[i][j].act*grid[i][j].memory/8)
 		        green = math.tanh(grid[i][j].past_act - grid[i][j].past_act*grid[i][j].color1/8)
 		        blue = math.tanh(
 					grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/4
@@ -264,10 +270,14 @@ function love.draw()
 		        red = math.tanh(grid[i][j].color1)
 		        green = math.tanh(grid[i][j].past_act)/16
 		        blue = math.tanh(grid[i][j].act)/16
-			elseif view_mode == 5 then -- focus color2
+			elseif view_mode == 5 then -- focus memory
 		        red = math.tanh(grid[i][j].act)/16
-		        green = math.tanh(grid[i][j].color2)
+		        green = math.tanh(grid[i][j].memory)
 		        blue = math.tanh(grid[i][j].past_act)/16
+			elseif view_mode == 6 then -- focus memory
+		        red = math.tanh(grid[i][j].color1)
+		        green = math.tanh(grid[i][j].memory)
+		        blue = math.tanh(grid[i][j].learningrate^0.5)
 			end
             love.graphics.setColor(red, green, blue)
             love.graphics.rectangle("fill", x, y, CELLSIZE, CELLSIZE)

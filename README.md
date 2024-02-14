@@ -39,6 +39,7 @@ View modes:
 **3** - Shows learning rate.
 **4** - Shows gene 1.
 **5** - Shows gene 2.
+**6** - Shows all genes.
 
 ## License
 Affero GPL
