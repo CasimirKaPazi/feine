@@ -32,7 +32,7 @@ function initCell(i, j)
 		err = 0,
 		color1 = 0,
 		memory = 0,
-		learningrate = MIN_LEARNING*2, -- memory learningrate to smaller values
+		learning = math.random(),--MIN_LEARNING, -- bias learning to smaller values
 		weights = {}  -- Initialize weights for neighbors within range
 	}
 	for x = -RANGE, RANGE do
@@ -66,7 +66,7 @@ function copyGenes(i, j, nI, nJ)
  	end
 	grid[i][j].color1 = grid[nI][nJ].color1
 	grid[i][j].memory = grid[nI][nJ].memory
-	grid[i][j].learningrate = grid[nI][nJ].learningrate
+	grid[i][j].learning = grid[nI][nJ].learning
 end
 
 -- Calculate mutation for a gene

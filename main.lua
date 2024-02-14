@@ -68,9 +68,10 @@ function updateWeights()
 			grid[i][j].act = grid[i][j].new_act
 			-- Update weights to minimize surprise, using the qudratic loss funtion
 			local err = -2 * (grid[i][j].act - grid[i][j].past_act)
+			local learningrate = (grid[i][j].learning^4 + MIN_LEARNING)
 			grid[i][j].err = err
 			for w = 1, N_WEIGHTS do
-				grid[i][j].weights[w] = grid[i][j].weights[w] + grid[i][j].learningrate * err * math.tanh(grid[i][j].act)
+				grid[i][j].weights[w] = grid[i][j].weights[w] + learningrate * err * math.tanh(grid[i][j].act)
 			end
 		end
 	end
@@ -80,7 +81,7 @@ end
 function updateReproduction()
 	for i = 1, GRID_WIDTH do
 		for j = 1, GRID_HEIGHT do
-			local lower = (MIN_LEARNING / grid[i][j].learningrate + grid[i][j].memory/2)^2 / 64
+			local lower = (math.tanh(1/grid[i][j].learning) * math.tanh(grid[i][j].memory+0.5))
 			if grid[i][j].act < lower and grid[i][j].past_act < lower and grid[i][j].past2_act < lower then
 				-- When dead, get new genes
 				local nI = (i + math.random(-1, 1))
@@ -111,11 +112,11 @@ function updateMutation()
 		elseif m == 2 then
 			grid[i][j].memory = mutate(grid[i][j].memory)
 		elseif m == 3 then
-			grid[i][j].learningrate = mutate(grid[i][j].learningrate)
+			grid[i][j].learning = mutate(grid[i][j].learning)
 		end
-		-- Cells tend to prefer the lowest possible learningrate. Make sure it doesn't drop to zero.
-		if grid[i][j].learningrate < MIN_LEARNING then
-			grid[i][j].learningrate = MIN_LEARNING
+		-- Cells tend to prefer the lowest possible learning. Make sure it doesn't drop to zero.
+		if grid[i][j].learning < 0 then
+			grid[i][j].learning = 0
 		end
 		if grid[i][j].memory > 1 then
 			grid[i][j].memory = 1
@@ -179,7 +180,7 @@ function love.mousepressed(x, y, button, istouch, presses)
 				print("err = ",grid[cellX][cellY].err)
 				print("color1 = ",grid[cellX][cellY].color1)
 				print("memory = ",grid[cellX][cellY].memory)
-				print("learningrate = ",grid[cellX][cellY].learningrate)
+				print("learning = ",grid[cellX][cellY].learning)
 				for w = 1, N_WEIGHTS do
 					print("weight "..w.." = ",grid[cellX][cellY].weights[w])
 				end
@@ -256,16 +257,16 @@ function love.draw()
 		        green = math.tanh(grid[i][j].past_act - grid[i][j].past_act*grid[i][j].color1/8)
 		        blue = math.tanh(
 					grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/4
-					+ (grid[i][j].act + grid[i][j].past_act)*grid[i][j].learningrate/8
+					+ (grid[i][j].act + grid[i][j].past_act)*grid[i][j].learning/8
 				)
 			elseif view_mode == 2 then -- error
 		        red = math.tanh(grid[i][j].err)
 		        green = math.tanh(grid[i][j].err)
 		        blue = math.tanh(grid[i][j].err)
-			elseif view_mode == 3 then -- focus learningrate
+			elseif view_mode == 3 then -- focus learning
 		        red = math.tanh(grid[i][j].past_act)/16
 		        green = math.tanh(grid[i][j].act)/16
-		        blue = math.tanh(grid[i][j].learningrate^0.5)
+		        blue = math.tanh(grid[i][j].learning)
 			elseif view_mode == 4 then -- focus color1
 		        red = math.tanh(grid[i][j].color1)
 		        green = math.tanh(grid[i][j].past_act)/16
@@ -277,7 +278,7 @@ function love.draw()
 			elseif view_mode == 6 then -- focus memory
 		        red = math.tanh(grid[i][j].color1)
 		        green = math.tanh(grid[i][j].memory)
-		        blue = math.tanh(grid[i][j].learningrate^0.5)
+		        blue = math.tanh(grid[i][j].learning)
 			end
             love.graphics.setColor(red, green, blue)
             love.graphics.rectangle("fill", x, y, CELLSIZE, CELLSIZE)
