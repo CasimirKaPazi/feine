@@ -39,10 +39,11 @@ function initCell(i, j)
 		for y = -RANGE, RANGE do
 			if x ~= 0 or y ~= 0 then
 				-- Divide by |x|+|y| to give more weight to closer neighbors
-				local random = (math.random() - 0.5) * 2 -- Between -1 and 1
+				local random = (math.random() - 0.5) * 2 -- between -1 and 1
+				random = random^3 * (12/RANGE)
 				table.insert(
 					grid[i][j].weights,
-					RANGE*2 * random / (math.abs(x) + math.abs(y))
+					random / (math.abs(x) + math.abs(y))
 				)
 			end
 		end
