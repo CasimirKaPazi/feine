@@ -9,12 +9,12 @@ function love.load()
 	GRID_WIDTH = 100
 	GRID_HEIGHT = 100
 	grid = {}
-	CELLSIZE = 3 -- pixel on screen
+	CELLSIZE = 2 -- pixel on screen
 	-- affecting cells
 	RANGE = 2 -- how far from origin weights are drawn
 	N_WEIGHTS = (RANGE * 2 + 1)^2 - 1 -- number of connections increases exponentially with range
-	MIN_LEARNING = 0.0001 -- found through trial and error. Affects the ratio between learning and evolution.
-	N_MUTATIONS = 10 -- mutations per 100x100 area per time step
+	MIN_LEARNING = 0.0005 -- found through trial and error. Affects the ratio between learning and evolution.
+	N_MUTATIONS = 2 -- mutations per 100x100 area per time step
 	-- for tools
 	generation = 0 -- count generations
 	pause = false -- pause simulation
@@ -55,7 +55,7 @@ function updateActivation()
 			grid[i][j].past2_act = grid[i][j].past_act
 			grid[i][j].past_act = currentact
 			-- Update activation using ReLU
-			grid[i][j].new_act = math.max(0, (sum + currentact*grid[i][j].memory)/(1+grid[i][j].memory))
+			grid[i][j].new_act = math.max(0, (sum*3 + currentact*grid[i][j].memory)/(1*3+grid[i][j].memory))
 		end
 	end
 end
@@ -81,8 +81,8 @@ end
 function updateReproduction()
 	for i = 1, GRID_WIDTH do
 		for j = 1, GRID_HEIGHT do
-			local lower = (math.tanh(1/grid[i][j].learning) * math.tanh(grid[i][j].memory+0.5))
-			if grid[i][j].act < lower and grid[i][j].past_act < lower and grid[i][j].past2_act < lower then
+			local lower = ( math.tanh(1/grid[i][j].learning) * math.tanh(grid[i][j].memory+0.001) )^0.5 /2
+			if math.abs(grid[i][j].err) + grid[i][j].act/2 < lower then
 				-- When dead, get new genes
 				local nI = (i + math.random(-1, 1))
 				local nJ = (j + math.random(-1, 1))
@@ -101,25 +101,53 @@ function updateMutation()
 	for n = 1, math.floor(N_MUTATIONS * GRID_WIDTH/100 * GRID_HEIGHT/100) do
 		local i, j = math.random(1, GRID_WIDTH), math.random(1, GRID_HEIGHT)
 		-- Introduce some noise to restart dead simulations and to select for more robust patterns
-		grid[i][j].act = grid[i][j].act + math.random()/100
-		-- Always change some wieght
-		local w = math.random(1, N_WEIGHTS)
-		grid[i][j].weights[w] = mutate(grid[i][j].weights[w])
-		-- Modify some gene to mark changed cells
-		local m = math.random(1,3)
-		if m == 1 then
+		grid[i][j].act = grid[i][j].act + math.random()/50
+		-- Modify genes
+		local m = math.random(1,10)
+		if m == 1 then -- color1
 			grid[i][j].color1 = mutate(grid[i][j].color1)
-		elseif m == 2 then
+		elseif m == 2 then -- memory
 			grid[i][j].memory = mutate(grid[i][j].memory)
-		elseif m == 3 then
+		elseif m == 3 then -- leanring rate
 			grid[i][j].learning = mutate(grid[i][j].learning)
+		elseif m == 4 then -- swap color1 and memory
+			local swap = grid[i][j].color1
+			grid[i][j].color1 = grid[i][j].memory
+			grid[i][j].memory = swap
+		elseif m == 5 then -- swap color1 and memory
+			local swap = grid[i][j].memory
+			grid[i][j].memory = grid[i][j].learning
+			grid[i][j].learning = swap
+		elseif m == 6 then -- swap color1 and memory
+			local swap = grid[i][j].learning
+			grid[i][j].learning = grid[i][j].color1
+			grid[i][j].color1 = swap
+		elseif m == 7 then -- invert random weight
+			local w = math.random(1, N_WEIGHTS)
+			grid[i][j].weights[w] = mutate(grid[i][j].weights[w]+0.5)-0.5
+		elseif m == 8 then -- copy one weight onto another
+			local w = math.random(1, N_WEIGHTS)
+			local k = math.random(1, N_WEIGHTS)
+			grid[i][j].weights[w] = grid[i][j].weights[k]
+		elseif m == 9 then -- invert random weight
+			local w = math.random(1, N_WEIGHTS)
+			grid[i][j].weights[w] = -1* grid[i][j].weights[w]
+		elseif m == 10 then -- merge genes with direct neighbor
+			local x = math.random(-1,1)
+			local y = math.random(-1,1)
+			if math.abs(x) + math.abs(y) == 1 then
+				local nI, nJ = wrapAroundGrid(i + math.random(-1,1), j + math.random(-1,1))
+				mixGenes(i, j, nI, nJ)
+			end
 		end
-		-- Cells tend to prefer the lowest possible learning. Make sure it doesn't drop to zero.
 		if grid[i][j].learning < 0 then
 			grid[i][j].learning = 0
 		end
 		if grid[i][j].memory > 1 then
 			grid[i][j].memory = 1
+		end
+		if grid[i][j].memory < 0 then
+			grid[i][j].memory = 0
 		end
 	end
 end
@@ -130,25 +158,25 @@ function love.keypressed(key, scancode, isrepeat)
 		pause = not(pause)
 	elseif key == "a" then -- continue paused simulation one time step
 		step = true
-	elseif key == "0" then
+	elseif key == "0" and view_mode ~= 0 then
 		prev_view_mode = view_mode
 		view_mode = 0
-	elseif key == "1" then
+	elseif key == "1" and view_mode ~= 1 then
 		prev_view_mode = view_mode
 		view_mode = 1
-	elseif key == "2" then
+	elseif key == "2" and view_mode ~= 2 then
 		prev_view_mode = view_mode
 		view_mode = 2
-	elseif key == "3" then
+	elseif key == "3" and view_mode ~= 3 then
 		prev_view_mode = view_mode
 		view_mode = 3
-	elseif key == "4" then
+	elseif key == "4" and view_mode ~= 4 then
 		prev_view_mode = view_mode
 		view_mode = 4
-	elseif key == "5" then
+	elseif key == "5" and view_mode ~= 5 then
 		prev_view_mode = view_mode
 		view_mode = 5
-	elseif key == "6" then
+	elseif key == "6" and view_mode ~= 6 then
 		prev_view_mode = view_mode
 		view_mode = 6
 	elseif key == "tab" then -- Switch to last used viewing mode
@@ -170,8 +198,9 @@ function love.mousepressed(x, y, button, istouch, presses)
 				for i = 1, GRID_WIDTH do
 					for j = 1, GRID_HEIGHT do
 						copyGenes(i, j, cellX, cellY)
-						grid[i][j].act = grid[cellX][cellY].act
-						grid[i][j].past_act = grid[cellX][cellY].past_act
+						grid[i][j].act = math.random()
+						grid[i][j].past_act = math.random()
+						grid[i][j].past2_act = math.random()
 					end
 				end
 			else
@@ -253,12 +282,9 @@ function love.draw()
 			local green = 0
 			local blue = 0
 			if view_mode == 1 then -- activation with slight indication of genes
-		        red = math.tanh(grid[i][j].act - grid[i][j].act*grid[i][j].memory/8)
-		        green = math.tanh(grid[i][j].past_act - grid[i][j].past_act*grid[i][j].color1/8)
-		        blue = math.tanh(
-					grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/4
-					+ (grid[i][j].act + grid[i][j].past_act)*grid[i][j].learning/8
-				)
+		        red = math.tanh(grid[i][j].act*2 - grid[i][j].err/8)
+		        green = math.tanh(grid[i][j].past_act*2 - grid[i][j].err/8)
+		        blue = math.tanh(grid[i][j].act*2 + grid[i][j].past_act*2 + grid[i][j].past2_act/2)
 			elseif view_mode == 2 then -- error
 		        red = math.tanh(grid[i][j].err)
 		        green = math.tanh(grid[i][j].err)
@@ -266,19 +292,19 @@ function love.draw()
 			elseif view_mode == 3 then -- focus learning
 		        red = math.tanh(grid[i][j].past_act)/16
 		        green = math.tanh(grid[i][j].act)/16
-		        blue = math.tanh(grid[i][j].learning)
+		        blue = math.tanh(grid[i][j].learning*2)
 			elseif view_mode == 4 then -- focus color1
-		        red = math.tanh(grid[i][j].color1)
+		        red = math.tanh(grid[i][j].color1*2)
 		        green = math.tanh(grid[i][j].past_act)/16
 		        blue = math.tanh(grid[i][j].act)/16
 			elseif view_mode == 5 then -- focus memory
 		        red = math.tanh(grid[i][j].act)/16
-		        green = math.tanh(grid[i][j].memory)
+		        green = math.tanh(grid[i][j].memory*2)
 		        blue = math.tanh(grid[i][j].past_act)/16
 			elseif view_mode == 6 then -- focus memory
-		        red = math.tanh(grid[i][j].color1)
-		        green = math.tanh(grid[i][j].memory)
-		        blue = math.tanh(grid[i][j].learning)
+		        red = math.tanh(grid[i][j].color1*2)
+		        green = math.tanh(grid[i][j].memory*2)
+		        blue = math.tanh(grid[i][j].learning*2)
 			end
             love.graphics.setColor(red, green, blue)
             love.graphics.rectangle("fill", x, y, CELLSIZE, CELLSIZE)

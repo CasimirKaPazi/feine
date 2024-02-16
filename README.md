@@ -34,11 +34,11 @@ Requires the LÖVE2D engine. Run with:
 
 View modes:
 **0** - Hide grid to run a little bit faster. Also shows current generation.
-**1** - Default view. Shows activation with slight indication of genes.
+**1** - Shows activation. (default view)
 **2** - Shows error.
-**3** - Shows learning rate.
+**3** - Shows learning rate gene.
 **4** - Shows gene 1.
-**5** - Shows gene 2.
+**5** - Shows memory gene.
 **6** - Shows all genes.
 
 ## License
