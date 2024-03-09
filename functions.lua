@@ -3,28 +3,6 @@ function wrapAroundGrid(i, j)
     return ((i - 1) % GRID_WIDTH) + 1, ((j - 1) % GRID_HEIGHT) + 1
 end
 
--- Move the grid
-function shiftMap(x, y)
-	if x >= 0 and y >= 0 then
-		Ai, Zi, Di = 1, GRID_WIDTH, 1
-		Aj, Zj, Dj = 1, GRID_HEIGHT, 1
-	else
-		Ai, Zi, Di = GRID_WIDTH, 1, -1
-		Aj, Zj, Dj = GRID_HEIGHT, 1, -1
-	end
-	for i = Ai, Zi, Di do
-		for j = Aj, Zj, Dj do
-			nI, nJ = wrapAroundGrid(i+x, j+y)
-			copyGenes(i, j, nI, nJ)
-			grid[i][j].act = grid[nI][nJ].act
-			grid[i][j].past_act = grid[nI][nJ].past_act
-			grid[i][j].past2_act = grid[nI][nJ].past2_act
-			grid[i][j].err = grid[nI][nJ].err
-			grid[i][j].fitness = grid[nI][nJ].fitness
-		end
-	end
-end
-
 function initCell(i, j)
 	local init = math.random()
 	grid[i][j] = {

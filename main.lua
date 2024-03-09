@@ -26,6 +26,8 @@ function love.load()
 	hide_mouse = false
 	view_mode = 1
 	prev_view_mode = 0
+	shiftX = 0
+	shiftY = 0
 
 	love.window.setTitle("Feine")
 	love.window.setMode(GRID_WIDTH * CELLSIZE, GRID_HEIGHT * CELLSIZE)
@@ -313,14 +315,14 @@ function love.update(dt)
 
 	-- Move the grid with arrow keys
 	if love.keyboard.isDown( "right" ) then
-		shiftMap(1, 0)
+		shiftX = ((shiftX - 1 - 1) % GRID_WIDTH) + 1
 	elseif love.keyboard.isDown( "left" ) then
-		shiftMap(-1, 0)
+		shiftX = ((shiftX + 1 - 1) % GRID_WIDTH) + 1
 	end
 	if love.keyboard.isDown( "down" ) then
-		shiftMap(0, 1)
+		shiftY = ((shiftY - 1 - 1) % GRID_WIDTH) + 1
 	elseif love.keyboard.isDown( "up" ) then
-		shiftMap(0, -1)
+		shiftY = ((shiftY + 1 - 1) % GRID_WIDTH) + 1
 	end
 
 --	if generation == 5000 then pause = true end -- For testing
@@ -338,8 +340,11 @@ function love.draw()
 	end
     for i = 1, GRID_WIDTH do
         for j = 1, GRID_HEIGHT do
-            local x = (i - 1) * CELLSIZE
-            local y = (j - 1) * CELLSIZE
+			local x = i + shiftX
+			local y = j + shiftY
+			x, y = wrapAroundGrid(x, y)
+            x = (x - 1) * CELLSIZE
+            y = (y - 1) * CELLSIZE
 			local red = 0
 			local green = 0
 			local blue = 0
