@@ -20,6 +20,7 @@ function shiftMap(x, y)
 			grid[i][j].past_act = grid[nI][nJ].past_act
 			grid[i][j].past2_act = grid[nI][nJ].past2_act
 			grid[i][j].err = grid[nI][nJ].err
+			grid[i][j].fitness = grid[nI][nJ].fitness
 		end
 	end
 end
@@ -32,10 +33,15 @@ function initCell(i, j)
 		past2_act = init, -- Activation of two steps past
 		new_act = 0,
 		err = 0,
+		fitness = 0,
 		color1 = math.random(),
 		memory = math.random(),
 		learning = math.random(),
-		weights = {}  -- Initialize weights for neighbors within range
+		weights = {},  -- Initialize weights for neighbors within range
+		new_color1 = math.random(),
+		new_memory = math.random(),
+		new_learning = math.random(),
+		new_weights = {}
 	}
 	for x = -RANGE, RANGE do
 		for y = -RANGE, RANGE do
@@ -45,6 +51,11 @@ function initCell(i, j)
 				table.insert(
 					-- Divide by |x|+|y| to give more weight to closer neighbors
 					grid[i][j].weights,
+					random / (math.abs(x) + math.abs(y))
+				)
+				table.insert(
+					-- Divide by |x|+|y| to give more weight to closer neighbors
+					grid[i][j].new_weights,
 					random / (math.abs(x) + math.abs(y))
 				)
 			end
@@ -65,27 +76,27 @@ end
 -- Copy Genes from another cell
 function copyGenes(i, j, nI, nJ)
 	for w = 1, N_WEIGHTS do
-		grid[i][j].weights[w] = grid[nI][nJ].weights[w]
+		grid[i][j].new_weights[w] = grid[nI][nJ].weights[w]
  	end
-	grid[i][j].color1 = grid[nI][nJ].color1
-	grid[i][j].memory = grid[nI][nJ].memory
-	grid[i][j].learning = grid[nI][nJ].learning
+	grid[i][j].new_color1 = grid[nI][nJ].color1
+	grid[i][j].new_memory = grid[nI][nJ].memory
+	grid[i][j].new_learning = grid[nI][nJ].learning
 end
 
-function mixGenes(i, j, nI, nJ)
+function mixGenes(i, j, nI, nJ, nI2, nJ2)
 	for w = 1, N_WEIGHTS do
 		if math.random(2) == 1 then
-			grid[i][j].weights[w] = grid[nI][nJ].weights[w]
+			grid[i][j].new_weights[w] = grid[nI][nJ].weights[w]
 		end
 	end
 	if math.random(2) == 1 then
-		grid[i][j].color1 = grid[nI][nJ].color1
+		grid[i][j].new_color1 = grid[nI][nJ].color1
 	end
 	if math.random(2) == 1 then
-		grid[i][j].memory = grid[nI][nJ].memory
+		grid[i][j].new_memory = grid[nI][nJ].memory
 	end
 	if math.random(2) == 1 then
-		grid[i][j].learningrate = grid[nI][nJ].learningrate
+		grid[i][j].new_learningrate = grid[nI][nJ].learningrate
 	end
 end
 
