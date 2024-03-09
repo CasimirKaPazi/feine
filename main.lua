@@ -14,7 +14,8 @@ function love.load()
 	RANGE = 2 -- how far from origin weights are drawn
 	N_WEIGHTS = (RANGE * 2 + 1)^2 - 1 -- number of connections increases exponentially with range
 	MIN_LEARNING = 0.0001 -- found through trial and error. Affects the ratio between learning and evolution.
-	N_MUTATIONS = 5 -- mutations per 100x100 area per time step
+	N_MUTATIONS = 10 -- mutations per 100x100 area per time step
+	MAX_ACT = 10000
 	average_sum = 0
 	average_fitness = 0
 	-- for tools
@@ -58,8 +59,8 @@ function updateActivation()
 			grid[i][j].past2_act = grid[i][j].past_act
 			grid[i][j].past_act = currentact
 			-- Update activation using ReLU
-			sum = math.min(math.max(0, sum), 10000)
---			sum = math.min(10000, math.max(0, (sum*3 + currentact*grid[i][j].memory)/(1*3+grid[i][j].memory)))
+			sum = math.max(0, (sum*3 + currentact*grid[i][j].memory)/(3+grid[i][j].memory))
+			if sum >= MAX_ACT then sum = 0 end
 			average_sum = average_sum + sum + grid[i][j].past_act + grid[i][j].past2_act
 			grid[i][j].new_act = sum
 		end
@@ -91,32 +92,51 @@ function updateReproduction()
 		for j = 1, GRID_HEIGHT do
 			local nI = i
 			local nJ = j
-			local r = math.random(4)
-			if r == 1 then
-				nI = (i + 1)
-			elseif r == 2 then
-				nI = (i - 1)
-			elseif r == 3 then
-				nJ = (j + 1)
-			elseif r == 4 then
-				nJ = (j - 1)
-			end
-			nI, nJ = wrapAroundGrid(nI, nJ)
-			local fitness = 0
-				-- compare how well the cell and neighbor predict each other
-				-- when the difference is 0 this becomes 1
-				- 2^(-1*math.abs(grid[i][j].act - grid[nI][nJ].past_act))
-				+ 2^(-1*math.abs(grid[nI][nJ].act - grid[i][j].past_act))
-				- math.tanh(grid[nI][nJ].act + grid[nI][nJ].past_act) * (1-math.tanh(math.abs(grid[nI][nJ].err)))
-				+ math.tanh(grid[i][j].act + grid[i][j].past_act) * (math.tanh(math.abs(grid[i][j].err)))
-			if grid[nI][nJ].act == 0 then fitness = 0 end
-			if fitness < 0 or (grid[i][j].past_act * grid[i][j].past_act * grid[i][j].past2_act)^(1/3) >= 9000 then
-				copyGenes(i, j, nI, nJ)
-			else
-				copyGenes(i, j, i, j)
-			end
-			grid[i][j].fitness = fitness
-			average_fitness = average_fitness + fitness
+            local neighbors = {
+                {x = i + 1, y = j, p = 1},
+                {x = i - 1, y = j, p = 1},
+                {x = i, y = j + 1, p = 1},
+                {x = i, y = j - 1, p = 1},
+                {x = i + 1, y = j + 1, p = 0.71},
+                {x = i - 1, y = j + 1, p = 0.71},
+                {x = i + 1, y = j - 1, p = 0.71},
+                {x = i - 1, y = j - 1, p = 0.71}
+            }
+
+			-- Neighbors compete with center
+            local bestNeighbors = {{x = i, y = j}}
+			-- Penalize static patterns and high activation
+            local bestFitness = 1
+				- 4*((grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act)/MAX_ACT)^2
+				- math.tanh(math.min(grid[i][j].act, grid[i][j].past_act, grid[i][j].past2_act))
+
+            -- Iterate through neighbors to find the best fit
+            for _, neighbor in ipairs(neighbors) do
+                local nI, nJ = wrapAroundGrid(neighbor.x, neighbor.y)
+				local fitness = 0.5
+					-- compare how well the cell and neighbor predict each other
+					+ math.tanh(grid[nI][nJ].act)
+					- math.tanh(grid[i][j].act)
+					-- Penalize static patterns and high activation
+					- 4*((grid[nI][nJ].act + grid[nI][nJ].past_act + grid[nI][nJ].past2_act)/MAX_ACT)^2
+					- math.tanh(math.min(grid[nI][nJ].act, grid[nI][nJ].past_act, grid[nI][nJ].past2_act))
+					-- Penalize genes
+					- (grid[nI][nJ].memory + 1)/(grid[nI][nJ].learning + 1)/16
+				fitness = fitness * neighbor.p
+				if grid[nI][nJ].act == 0 then fitness = 0 end
+                if fitness > bestFitness then
+                    bestFitness = fitness
+                    bestNeighbors = {{x = nI, y = nJ}}
+                elseif fitness == bestFitness then
+                    table.insert(bestNeighbors, {x = nI, y = nJ})
+                end
+            end
+            -- Randomly select one of the best-fit neighbors
+            local selectedNeighbor = bestNeighbors[math.random(1, #bestNeighbors)]
+            copyGenes(i, j, selectedNeighbor.x, selectedNeighbor.y)
+
+			grid[i][j].fitness = bestFitness
+			average_fitness = average_fitness + bestFitness
 		end
 	end
 	average_fitness = average_fitness / GRID_WIDTH / GRID_HEIGHT
@@ -138,8 +158,10 @@ function updateMutation()
 	-- Pick several cells at random to mutate
 	for n = 1, math.ceil(N_MUTATIONS * GRID_WIDTH/100 * GRID_HEIGHT/100) do
 		local i, j = math.random(1, GRID_WIDTH), math.random(1, GRID_HEIGHT)
-		-- Introduce some noise to restart dead simulations and to select for more robust patterns
-		grid[i][j].act = grid[i][j].act + math.random()/50
+		-- Introduce some noise to restart dead simulations
+		if average_sum * math.random() < 1 then
+			grid[i][j].act = grid[i][j].act + math.random()/50
+		end
 		-- Modify genes
 		local m = math.random(1,4)
 		if m == 1 then -- color1
@@ -153,6 +175,7 @@ function updateMutation()
 			grid[i][j].memory = mutate(grid[i][j].memory)
 			grid[i][j].learning = mutate(grid[i][j].learning)
 		end
+		-- Modify weights
 		m = math.random(1,4)
 		if m == 1 then -- invert random weight
 			local w = math.random(1, N_WEIGHTS)
@@ -231,10 +254,6 @@ function love.mousepressed(x, y, button, istouch, presses)
 				-- Replace all cells with genes of pointed
 				for i = 1, GRID_WIDTH do
 					for j = 1, GRID_HEIGHT do
---						copyGenes(i, j, cellX, cellY)
---						grid[i][j].act = math.random()
---						grid[i][j].past_act = math.random()
---						grid[i][j].past2_act = math.random()
 						for w = 1, N_WEIGHTS do
 							grid[i][j].weights[w] = grid[cellX][cellY].weights[w]
 					 	end
@@ -313,8 +332,8 @@ function love.draw()
 	if view_mode == 0 then -- Grid hidden
 		love.graphics.setColor(1, 1, 1)
 		love.graphics.printf("Generation: "..generation, 0, 0, GRID_WIDTH)
-		love.graphics.printf("Average: "..math.floor(average_sum), 0, 24, GRID_WIDTH)
-		love.graphics.printf("Fitness: "..math.floor(average_fitness*10000)/10000, 0, 48, GRID_WIDTH)
+		love.graphics.printf("Activation: "..math.floor(average_sum*1000)/1000, 0, 24, GRID_WIDTH)
+		love.graphics.printf("Fitness: "..math.floor(average_fitness*1000)/1000, 0, 48, GRID_WIDTH)
 		return
 	end
     for i = 1, GRID_WIDTH do
