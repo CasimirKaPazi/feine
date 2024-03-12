@@ -85,9 +85,9 @@ function updateWeights()
 			grid[i][j].err = err
 			for w = 1, N_WEIGHTS do
 				local nI, nJ = wrapAroundGrid(i + weight_pos[w].x, j + weight_pos[w].y)
-				grid[i][j].past_weights[w] = grid[i][j].past_weights[w] + 
+				grid[i][j].past_weights[w] = grid[i][j].past_weights[w] +
 					learningrate * err * grid[i][j].act * math.tanh(grid[nI][nJ].past_act)
-				grid[i][j].weights[w] = grid[i][j].weights[w] + 
+				grid[i][j].weights[w] = grid[i][j].weights[w] +
 					learningrate * err * grid[i][j].act * math.tanh(grid[nI][nJ].act)
 			end
 		end
@@ -150,11 +150,13 @@ function updateReproduction()
 			end
 
 			-- Randomly select one of the best-fit neighbors
-			if bestFitness > math.max(0, selfFitness) then
+			if bestFitness > math.max(0, selfFitness + c.cooldown) then
 				local selectedNeighbor = bestNeighbors[math.random(1, #bestNeighbors)]
 				copyGenes(i, j, selectedNeighbor.x, selectedNeighbor.y)
+				c.cooldown = 1
 			else
 				copyGenes(i, j, i, j)
+				c.cooldown = c.cooldown/2
 			end
 
 			c.fitness = bestFitness
@@ -380,8 +382,8 @@ function love.draw()
 				blue = math.tanh(grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/2)
 			elseif view_mode == 2 then -- error
 				red = math.tanh(math.abs(grid[i][j].err))
-				green = math.tanh(math.abs(grid[i][j].err))
-				blue = math.tanh(math.abs(grid[i][j].err))
+				green = math.tanh(math.max(0, grid[i][j].fitness^(1/2)))
+				blue = grid[i][j].cooldown
 			elseif view_mode == 3 then -- focus learning
 				red = math.tanh(grid[i][j].past_act)/16
 				green = math.tanh(grid[i][j].act)/16

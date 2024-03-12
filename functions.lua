@@ -23,6 +23,7 @@ function initCell(i, j)
 		new_act = 0,
 		err = 0,
 		fitness = 0,
+		cooldown = 1,
 		color1 = math.random(),
 		memory = math.random(),
 		learning = math.random()^4,
