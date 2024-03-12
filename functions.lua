@@ -3,6 +3,17 @@ function wrapAroundGrid(i, j)
     return ((i - 1) % GRID_WIDTH) + 1, ((j - 1) % GRID_HEIGHT) + 1
 end
 
+function gen_weight_pos()
+	for x = -RANGE, RANGE do
+		for y = -RANGE, RANGE do
+			if x ~= 0 or y ~= 0 then
+				table.insert(weight_pos, {x = x, y = y})
+--				print("weight_pos nr: "..#weight_pos.." x: "..x.." y: "..y)
+			end
+		end
+	end
+end
+
 function initCell(i, j)
 	local init = math.random()
 	grid[i][j] = {
@@ -14,16 +25,22 @@ function initCell(i, j)
 		fitness = 0,
 		color1 = math.random(),
 		memory = math.random(),
-		learning = math.random(),
+		learning = math.random()^4,
 		weights = {},  -- Initialize weights for neighbors within range
+		past_weights = {},  -- Initialize weights for neighbors within range
 		new_color1 = math.random(),
 		new_memory = math.random(),
-		new_learning = math.random(),
-		new_weights = {}
+		new_learning = math.random()^4,
+		new_weights = {},
+		new_past_weights = {}
 	}
 	for x = -RANGE, RANGE do
 		for y = -RANGE, RANGE do
 			if x ~= 0 or y ~= 0 then
+				-- Weights for past states
+				table.insert(grid[i][j].past_weights, 0)
+				table.insert(grid[i][j].new_past_weights, 0)
+				-- Weights for current states
 				local random = (math.random() - 0.5) * 2 -- between -1 and 1
 				random = random^3 * (12/RANGE)
 				table.insert(
@@ -54,6 +71,7 @@ end
 -- Copy Genes from another cell
 function copyGenes(i, j, nI, nJ)
 	for w = 1, N_WEIGHTS do
+		grid[i][j].new_past_weights[w] = grid[nI][nJ].past_weights[w]
 		grid[i][j].new_weights[w] = grid[nI][nJ].weights[w]
  	end
 	grid[i][j].new_color1 = grid[nI][nJ].color1
@@ -61,8 +79,11 @@ function copyGenes(i, j, nI, nJ)
 	grid[i][j].new_learning = grid[nI][nJ].learning
 end
 
-function mixGenes(i, j, nI, nJ, nI2, nJ2)
+function mixGenes(i, j, nI, nJ)
 	for w = 1, N_WEIGHTS do
+		if math.random(2) == 1 then
+			grid[i][j].new_past_weights[w] = grid[nI][nJ].past_weights[w]
+		end
 		if math.random(2) == 1 then
 			grid[i][j].new_weights[w] = grid[nI][nJ].weights[w]
 		end
