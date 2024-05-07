@@ -66,7 +66,7 @@ function updateActivation()
 			-- Update activation using ReLU
 			sum = math.max(0, (sum*3 + currentact*grid[i][j].memory)/(3+grid[i][j].memory))
 			if sum >= MAX_ACT then sum = 0 end
-			average_sum = average_sum + sum + grid[i][j].past_act + grid[i][j].past2_act
+			average_sum = average_sum + sum
 			grid[i][j].new_act = sum
 		end
 	end
@@ -86,9 +86,9 @@ function updateWeights()
 			for w = 1, N_WEIGHTS do
 				local nI, nJ = wrapAroundGrid(i + weight_pos[w].x, j + weight_pos[w].y)
 				grid[i][j].past_weights[w] = grid[i][j].past_weights[w] +
-					learningrate * err * grid[i][j].act * math.tanh(grid[nI][nJ].past_act)
+					learningrate * err * grid[i][j].act * grid[nI][nJ].past_act
 				grid[i][j].weights[w] = grid[i][j].weights[w] +
-					learningrate * err * grid[i][j].act * math.tanh(grid[nI][nJ].act)
+					learningrate * err * grid[i][j].act * grid[nI][nJ].act
 			end
 		end
 	end
@@ -114,10 +114,9 @@ function updateReproduction()
 			local bestNeighbors = {{x = i, y = j}}
 			-- Penalize static patterns and high activation
 			local c = grid[i][j]
-			local selfFitness =
-				math.tanh(math.max(c.act, c.past_act/2, c.past2_act/3))/2
-				- math.tanh(math.min(c.act, c.past_act, c.past2_act))*2
-				- math.tanh(c.act * c.past_act * c.past2_act * 10)
+			local selfFitness = 1
+				- math.tanh(math.min(c.act, c.past_act, c.past2_act))
+--				- math.tanh(c.act * c.past_act * c.past2_act * 10)
 --				- math.tanh(math.abs(c.err))^4
 			local bestFitness = selfFitness
 
@@ -125,21 +124,18 @@ function updateReproduction()
 			for _, neighbor in ipairs(neighbors) do
 				local nI, nJ = wrapAroundGrid(neighbor.x, neighbor.y)
 				local n = grid[nI][nJ]
-				local fitness = 
-					math.tanh(n.act)/2
+				local fitness = 1
+--					+ math.tanh(n.act)/2
 					-- Penalize static patterns and high activation
-					- math.tanh(math.min(n.act, n.past_act, n.past2_act))*2
-					- math.tanh(n.act * n.past_act * n.past2_act * 10)
+					- math.tanh(math.min(n.act, n.past_act, n.past2_act))
 					-- Prevent flickering
 					- math.tanh(math.abs(n.err))^4
 					-- Penalize genes
-					- (n.memory + 1)/(n.learning + 1)/16
+					- (n.memory + 1)/(n.learning + 1)/32
 				fitness = fitness * neighbor.p
 					-- compare how well the neighbor predicts the center cell
-					* (
-						math.tanh( math.abs(c.act - c.past_act + 1) / (c.act + c.past_act + 1) )/
-						math.tanh( math.abs(c.act - n.past_act + 1) / (c.act + n.past_act + 1) )
-					)
+					* (	math.tanh( math.abs(c.act - c.past_act + 1) / (c.act + c.past_act + 1) )/
+						math.tanh( math.abs(c.act - n.past_act + 1) / (c.act + n.past_act + 1) ) )
 --				if n.act == 0 then fitness = 0 end
 				if fitness > bestFitness then
 					bestFitness = fitness
@@ -382,7 +378,7 @@ function love.draw()
 				blue = math.tanh(grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/2)
 			elseif view_mode == 2 then -- error
 				red = math.tanh(math.abs(grid[i][j].err))
-				green = math.tanh(math.max(0, grid[i][j].fitness^(1/2)))
+				green = math.tanh(math.max(0, (grid[i][j].fitness-1)^(1/2)))
 				blue = grid[i][j].cooldown
 			elseif view_mode == 3 then -- focus learning
 				red = math.tanh(grid[i][j].past_act)/16
