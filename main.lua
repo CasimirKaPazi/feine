@@ -64,7 +64,8 @@ function updateActivation()
 			grid[i][j].past2_act = grid[i][j].past_act
 			grid[i][j].past_act = currentact
 			-- Update activation using ReLU
-			sum = math.max(0, sum)
+			-- Reduce activation a litte to pose a challenge for the organisms
+			sum = math.max(0, sum - 0.01)
 			if sum >= MAX_ACT then sum = 0 end
 			average_sum = average_sum + sum
 			grid[i][j].new_act = sum
