@@ -94,6 +94,41 @@ function updateWeights()
 	end
 end
 
+
+-- When activation is close to average of neighbors, change activation
+function updateDiffusion()
+	average_fitness = 0
+	for i = 1, GRID_WIDTH do
+		for j = 1, GRID_HEIGHT do
+			local neighbors = {
+				{x = i + 1, y = j, p = 0.147},
+				{x = i - 1, y = j, p = 0.147},
+				{x = i, y = j + 1, p = 0.147},
+				{x = i, y = j - 1, p = 0.147},
+				{x = i + 1, y = j + 1, p = 0.103},
+				{x = i - 1, y = j + 1, p = 0.103},
+				{x = i + 1, y = j - 1, p = 0.103},
+				{x = i - 1, y = j - 1, p = 0.103}
+			}
+			local diff = 0
+			for _, neighbor in ipairs(neighbors) do
+				local nI, nJ = wrapAroundGrid(neighbor.x, neighbor.y)
+				local n = grid[nI][nJ]
+				diff = diff + math.tanh(n.act) * neighbor.p
+			end
+			local activation = grid[i][j].act--(grid[i][j].act * 3 + (diff - grid[i][j].act) * grid[i][j].color1)/(3 + grid[i][j].color1)
+			local change = math.tanh(grid[i][j].act) - diff
+			if change == 0 then
+				change = (math.random()-0.5)/1000
+			else
+				change = math.tanh(1/change)
+			end
+			activation = math.max(0, activation + 0.01 * math.tanh(grid[i][j].act) * change * (grid[i][j].color1 + MIN_LEARNING))
+			grid[i][j].new_act = activation
+		end
+	end
+end
+
 -- Reproduction
 function updateReproduction()
 	average_fitness = 0
