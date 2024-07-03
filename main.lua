@@ -88,9 +88,9 @@ function updateWeights()
 			for w = 1, N_WEIGHTS do
 				local nI, nJ = wrapAroundGrid(i + weight_pos[w].x, j + weight_pos[w].y)
 				grid[i][j].past_weights[w] = grid[i][j].past_weights[w] +
-					learningrate * err * grid[i][j].act * grid[nI][nJ].past_act * grid[i][j].memory * (1 - grid[nI][nJ].cooldown)
+					learningrate * err * grid[i][j].act * grid[nI][nJ].past_act * grid[i][j].memory
 				grid[i][j].weights[w] = grid[i][j].weights[w] +
-					learningrate * err * grid[i][j].act * grid[nI][nJ].act * (1 - grid[nI][nJ].cooldown)
+					learningrate * err * grid[i][j].act * grid[nI][nJ].act
 			end
 		end
 	end
