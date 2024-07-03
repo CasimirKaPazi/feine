@@ -247,9 +247,9 @@ function updateMutation()
 				end
 			end
 		end
-		grid[i][j].learning = math.max(0, grid[i][j].learning)
-		grid[i][j].memory = math.max(0, math.min(1, grid[i][j].memory))
-		grid[i][j].color1 = math.max(0, math.min(1, grid[i][j].color1))
+		grid[i][j].learning = loop(grid[i][j].learning)
+		grid[i][j].memory = loop(grid[i][j].memory)
+		grid[i][j].color1 = loop(grid[i][j].color1)
 	end
 end
 
@@ -373,7 +373,7 @@ function love.update(dt)
 	end
 
 --	if generation == 5000 then pause = true end -- For testing
-
+--	if generation == 1000 then print("1000 generations took "..os.time() - seed.." seconds") end
 end
 
 -- Show on screen
@@ -396,33 +396,33 @@ function love.draw()
 			local green = 0
 			local blue = 0
 			if view_mode == 1 then -- activation with slight indication of genes
-				red = math.tanh(grid[i][j].act - grid[i][j].err/8)
-				green = math.tanh(grid[i][j].past_act - grid[i][j].err/8)
-				blue = math.tanh(grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/2)
+				red = grid[i][j].act - grid[i][j].err/8
+				green = grid[i][j].past_act - grid[i][j].err/8
+				blue = grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/2
 			elseif view_mode == 2 then -- error
-				red = math.tanh(math.abs(grid[i][j].err))
-				green = math.tanh(math.max(0, (grid[i][j].fitness-1)^(1/2)))
+				red = math.abs(grid[i][j].err)
+				green = grid[i][j].fitness-1
 				blue = grid[i][j].cooldown
 			elseif view_mode == 3 then -- focus learning
-				red = math.tanh(grid[i][j].past_act)/16
-				green = math.tanh(grid[i][j].act)/16
-				blue = math.tanh(grid[i][j].learning^(1/2))
+				red = math.tanh(grid[i][j].past_act)/8
+				green = math.tanh(grid[i][j].act)/8
+				blue = (grid[i][j].learning^(1/2))
 			elseif view_mode == 4 then -- focus color1
-				red = math.tanh(grid[i][j].color1)
-				green = math.tanh(grid[i][j].past_act)/16
-				blue = math.tanh(grid[i][j].act)/16
+				red = grid[i][j].color1
+				green = math.tanh(grid[i][j].past_act)/8
+				blue = math.tanh(grid[i][j].act)/8
 			elseif view_mode == 5 then -- focus memory
-				red = math.tanh(grid[i][j].act)/16
-				green = math.tanh(grid[i][j].memory)
-				blue = math.tanh(grid[i][j].past_act)/16
+				red = math.tanh(grid[i][j].act)/8
+				green = grid[i][j].memory
+				blue = math.tanh(grid[i][j].past_act)/8
 			elseif view_mode == 6 then -- genes
-				red = math.tanh(grid[i][j].color1)
-				green = math.tanh(grid[i][j].memory)
-				blue = math.tanh(grid[i][j].learning^(1/2))
+				red = grid[i][j].color1
+				green = grid[i][j].memory
+				blue = grid[i][j].learning^(1/2)
 			elseif view_mode == 7 then -- genes + activation
-				red = math.tanh(grid[i][j].color1/3 + grid[i][j].act/2 - grid[i][j].err/16)
-				green = math.tanh(grid[i][j].memory/3 + grid[i][j].past_act/2 - grid[i][j].err/16)
-				blue = math.tanh(grid[i][j].learning^(1/2)/3 + grid[i][j].act/2 + grid[i][j].past_act/4 + grid[i][j].past2_act/8)
+				red = grid[i][j].color1/3 + (grid[i][j].act/2 - grid[i][j].err/16)
+				green = grid[i][j].memory/3 + (grid[i][j].past_act/2 - grid[i][j].err/16)
+				blue = grid[i][j].learning^(1/2)/3 + (grid[i][j].act/2 + grid[i][j].past_act/4 + grid[i][j].past2_act/8)
 			end
 			love.graphics.setColor(red, green, blue)
 			love.graphics.rectangle("fill", x, y, CELLSIZE, CELLSIZE)

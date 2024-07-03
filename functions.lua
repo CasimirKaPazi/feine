@@ -1,3 +1,14 @@
+-- loop x to be inbetween 0 and 1
+function loop(x)
+	if x < 0 then
+		x = math.abs(x)
+	end
+	if x > 1 then
+		x = 1 - (x - math.floor(x))
+	end
+	return x
+end
+
 -- Function to normalize indices and ensure looping around the grid
 function wrapAroundGrid(i, j)
     return ((i - 1) % GRID_WIDTH) + 1, ((j - 1) % GRID_HEIGHT) + 1
