@@ -22,6 +22,7 @@ function initCell(i, j)
 		past2_act = init, -- Activation of two steps past
 		new_act = 0,
 		err = 0,
+		past_err = 0,
 		fitness = 0,
 		cooldown = 1,
 		color1 = math.random(),
@@ -67,6 +68,22 @@ function initGrid()
 			initCell(i, j)
 		end
 	end
+end
+
+-- Evaluate fitness
+function get_fitness(self)
+	local fitness =
+	-- Select for alive patterns
+	math.tanh(self.act)
+	-- Don't escalate activation
+	* math.tanh(MAX_ACT - self.act^2)
+	-- Penalize static patterns and high activation
+	- math.tanh(math.max(self.act, self.past_act, self.past2_act))^2
+	- math.tanh(math.min(self.act, self.past_act, self.past2_act))^2
+	-- Prevent blurr
+	- math.tanh(math.abs(self.past_err))^2/4 * (1 - self.cooldown)
+	- math.tanh(math.abs(self.err))^2/4
+	return fitness
 end
 
 -- Copy Genes from another cell

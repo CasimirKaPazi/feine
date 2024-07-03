@@ -15,7 +15,7 @@ function love.load()
 	RANGE = 2 -- how far from origin weights are drawn
 	N_WEIGHTS = (RANGE * 2 + 1)^2 - 1 -- number of connections increases exponentially with range
 	MIN_LEARNING = 0.0001 -- found through trial and error. Affects the ratio between learning and evolution.
-	N_MUTATIONS = 20 -- mutations per 100x100 area per time step
+	N_MUTATIONS = 5 -- mutations per 100x100 area per time step
 	MAX_ACT = 10000
 	average_sum = 0
 	average_fitness = 0
@@ -65,7 +65,7 @@ function updateActivation()
 			grid[i][j].past_act = currentact
 			-- Update activation using ReLU
 			-- Reduce activation a litte to pose a challenge for the organisms
-			sum = math.max(0, sum - 0.01)
+			sum = math.max(0, sum)
 			if sum >= MAX_ACT then sum = 0 end
 			average_sum = average_sum + sum
 			grid[i][j].new_act = sum
@@ -83,6 +83,7 @@ function updateWeights()
 			-- Update weights to minimize surprise, using the qudratic loss funtion
 			local err = -2 * (grid[i][j].act - grid[i][j].past_act)
 			local learningrate = (grid[i][j].learning^4 + MIN_LEARNING)
+			grid[i][j].past_err = grid[i][j].err
 			grid[i][j].err = err
 			for w = 1, N_WEIGHTS do
 				local nI, nJ = wrapAroundGrid(i + weight_pos[w].x, j + weight_pos[w].y)
@@ -94,7 +95,7 @@ function updateWeights()
 		end
 	end
 end
-
+ 
 
 -- When activation is close to average of neighbors, change activation
 function updateDiffusion()
@@ -151,25 +152,14 @@ function updateReproduction()
 			local bestNeighbors = {{x = i, y = j}}
 			-- Penalize static patterns and high activation
 			local c = grid[i][j]
-			local selfFitness = 1
-				- math.tanh(math.min(c.act, c.past_act, c.past2_act))
-				- math.tanh(math.abs(c.err))^4*2
+			local selfFitness = get_fitness(c)
 			local bestFitness = selfFitness
 
 			-- Iterate through neighbors to find the best fit
 			for _, neighbor in ipairs(neighbors) do
 				local nI, nJ = wrapAroundGrid(neighbor.x, neighbor.y)
 				local n = grid[nI][nJ]
-				local fitness = 1
-					-- Penalize static patterns and high activation
-					- math.tanh(math.min(n.act, n.past_act, n.past2_act))
-					-- Prevent flickering
-					- math.tanh(math.abs(n.err))^4*2
-					-- Penalize genes
-				fitness = fitness * neighbor.p
-					-- compare how well the neighbor predicts the center cell
-					* (	math.tanh( math.abs(c.act - c.past_act + 0.5) * (c.act + n.past_act + 0.5) )/
-						math.tanh( math.abs(c.act - n.past_act + 0.5) * (c.act + c.past_act + 0.5) ) )
+				local fitness = get_fitness(n) * neighbor.p
 				if fitness > bestFitness then
 					bestFitness = fitness
 					bestNeighbors = {{x = nI, y = nJ}}
@@ -179,13 +169,13 @@ function updateReproduction()
 			end
 
 			-- Randomly select one of the best-fit neighbors
-			if bestFitness > math.max(0, selfFitness + c.cooldown + 0.2) then
+			if bestFitness > math.max(0, selfFitness * (1+c.cooldown) + c.cooldown) then
 				local selectedNeighbor = bestNeighbors[math.random(1, #bestNeighbors)]
 				copyGenes(i, j, selectedNeighbor.x, selectedNeighbor.y)
 				c.cooldown = 1
 			else
 				copyGenes(i, j, i, j)
-				c.cooldown = c.cooldown/2
+				c.cooldown = c.cooldown * 0.75
 			end
 
 			c.fitness = bestFitness
@@ -416,7 +406,7 @@ function love.draw()
 			elseif view_mode == 3 then -- focus learning
 				red = math.tanh(grid[i][j].past_act)/16
 				green = math.tanh(grid[i][j].act)/16
-				blue = math.tanh(grid[i][j].learning)
+				blue = math.tanh(grid[i][j].learning^(1/2))
 			elseif view_mode == 4 then -- focus color1
 				red = math.tanh(grid[i][j].color1)
 				green = math.tanh(grid[i][j].past_act)/16
@@ -428,11 +418,11 @@ function love.draw()
 			elseif view_mode == 6 then -- genes
 				red = math.tanh(grid[i][j].color1)
 				green = math.tanh(grid[i][j].memory)
-				blue = math.tanh(grid[i][j].learning)
+				blue = math.tanh(grid[i][j].learning^(1/2))
 			elseif view_mode == 7 then -- genes + activation
 				red = math.tanh(grid[i][j].color1/3 + grid[i][j].act/2 - grid[i][j].err/16)
 				green = math.tanh(grid[i][j].memory/3 + grid[i][j].past_act/2 - grid[i][j].err/16)
-				blue = math.tanh(grid[i][j].learning/3 + grid[i][j].act/2 + grid[i][j].past_act/4 + grid[i][j].past2_act/8)
+				blue = math.tanh(grid[i][j].learning^(1/2)/3 + grid[i][j].act/2 + grid[i][j].past_act/4 + grid[i][j].past2_act/8)
 			end
 			love.graphics.setColor(red, green, blue)
 			love.graphics.rectangle("fill", x, y, CELLSIZE, CELLSIZE)
