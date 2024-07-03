@@ -92,9 +92,39 @@ function get_fitness(self)
 	- math.tanh(math.max(self.act, self.past_act, self.past2_act))^2
 	- math.tanh(math.min(self.act, self.past_act, self.past2_act))^2
 	-- Prevent blurr
-	- math.tanh(math.abs(self.past_err))^2/4 * (1 - self.cooldown)
-	- math.tanh(math.abs(self.err))^2/4
+	- math.tanh(math.abs(self.err) * math.abs(self.past_err))/4
 	return fitness
+end
+
+function mutuate(i, j)
+	-- Modify genes
+	local m = math.random(1,4)
+	if m == 1 then -- color1
+		grid[i][j].color1 = mutate(grid[i][j].color1)
+	elseif m == 2 then -- memory
+		grid[i][j].memory = mutate(grid[i][j].memory)
+	elseif m == 3 then -- leanring rate
+		grid[i][j].learning = mutate(grid[i][j].learning)
+	elseif m == 4 then -- leanring rate
+		grid[i][j].color1 = mutate(grid[i][j].color1)
+		grid[i][j].memory = mutate(grid[i][j].memory)
+		grid[i][j].learning = mutate(grid[i][j].learning)
+	end
+	-- Modify weights
+	m = math.random(1,2)
+	if m == 1 then -- mutate random weight
+		local w = math.random(1, N_WEIGHTS)
+		grid[i][j].past_weights[w] = mutate(grid[i][j].past_weights[w]+0.5)-0.5
+		grid[i][j].weights[w] = mutate(grid[i][j].weights[w]+0.5)-0.5
+	elseif m == 2 then -- copy one weight onto another
+		local w = math.random(1, N_WEIGHTS)
+		local k = math.random(1, N_WEIGHTS)
+		grid[i][j].past_weights[w] = grid[i][j].past_weights[k]
+		grid[i][j].weights[w] = grid[i][j].weights[k]
+	end
+	grid[i][j].learning = loop(grid[i][j].learning)
+	grid[i][j].memory = loop(grid[i][j].memory)
+	grid[i][j].color1 = loop(grid[i][j].color1)
 end
 
 -- Copy Genes from another cell
@@ -124,7 +154,7 @@ function mixGenes(i, j, nI, nJ)
 		grid[i][j].new_memory = grid[nI][nJ].memory
 	end
 	if math.random(2) == 1 then
-		grid[i][j].new_learningrate = grid[nI][nJ].learningrate
+		grid[i][j].new_learning = grid[nI][nJ].learning
 	end
 end
 

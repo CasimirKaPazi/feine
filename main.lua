@@ -170,8 +170,8 @@ function updateReproduction()
 
 			-- Randomly select one of the best-fit neighbors
 			if bestFitness > math.max(0, selfFitness * (1+c.cooldown) + c.cooldown) then
-				local selectedNeighbor = bestNeighbors[math.random(1, #bestNeighbors)]
-				copyGenes(i, j, selectedNeighbor.x, selectedNeighbor.y)
+				local parent_pos = bestNeighbors[math.random(1, #bestNeighbors)]
+				copyGenes(i, j, parent_pos.x, parent_pos.y)
 				c.cooldown = 1
 			else
 				copyGenes(i, j, i, j)
@@ -206,50 +206,7 @@ function updateMutation()
 		if average_sum * math.random() < 1 then
 			grid[i][j].act = grid[i][j].act + math.random()/50
 		end
-		-- Modify genes
-		local m = math.random(1,4)
-		if m == 1 then -- color1
-			grid[i][j].color1 = mutate(grid[i][j].color1)
-		elseif m == 2 then -- memory
-			grid[i][j].memory = mutate(grid[i][j].memory)
-		elseif m == 3 then -- leanring rate
-			grid[i][j].learning = mutate(grid[i][j].learning)
-		elseif m == 4 then -- leanring rate
-			grid[i][j].color1 = mutate(grid[i][j].color1)
-			grid[i][j].memory = mutate(grid[i][j].memory)
-			grid[i][j].learning = mutate(grid[i][j].learning)
-		end
-		-- Modify weights
-		m = math.random(1,4)
-		if m == 1 then -- invert random weight
-			local w = math.random(1, N_WEIGHTS)
-			grid[i][j].past_weights[w] = mutate(grid[i][j].past_weights[w]+0.5)-0.5
-			grid[i][j].weights[w] = mutate(grid[i][j].weights[w]+0.5)-0.5
-		elseif m == 2 then -- copy one weight onto another
-			local w = math.random(1, N_WEIGHTS)
-			local k = math.random(1, N_WEIGHTS)
-			grid[i][j].past_weights[w] = grid[i][j].past_weights[k]
-			grid[i][j].weights[w] = grid[i][j].weights[k]
-		elseif m == 3 then -- invert random weight
-			local w = math.random(1, N_WEIGHTS)
-			grid[i][j].past_weights[w] = -1* grid[i][j].past_weights[w]
-			grid[i][j].weights[w] = -1* grid[i][j].weights[w]
-		elseif m >= 4 then -- merge genes with direct neighbor
-			local x = math.random(-1,1)
-			local y = math.random(-1,1)
-			if math.abs(x) + math.abs(y) == 1 then
-				local nI, nJ = wrapAroundGrid(i + x, j + y)
-				if ( math.abs(grid[i][j].color1 - grid[nI][nJ].color1)
-					+ math.abs(grid[i][j].memory - grid[nI][nJ].memory)
-					+ math.abs(grid[i][j].learning - grid[nI][nJ].learning) )/3 
-					< (grid[i][j].color1 + grid[nI][nJ].color1)/2 then
-					mixGenes(i, j, nI, nJ)
-				end
-			end
-		end
-		grid[i][j].learning = loop(grid[i][j].learning)
-		grid[i][j].memory = loop(grid[i][j].memory)
-		grid[i][j].color1 = loop(grid[i][j].color1)
+		mutuate(i, j)
 	end
 end
 
@@ -401,7 +358,7 @@ function love.draw()
 				blue = grid[i][j].act + grid[i][j].past_act + grid[i][j].past2_act/2
 			elseif view_mode == 2 then -- error
 				red = math.abs(grid[i][j].err)
-				green = grid[i][j].fitness-1
+				green = grid[i][j].fitness^(1/2)
 				blue = grid[i][j].cooldown
 			elseif view_mode == 3 then -- focus learning
 				red = math.tanh(grid[i][j].past_act)/8
