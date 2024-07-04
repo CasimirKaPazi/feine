@@ -78,19 +78,22 @@ end
 function updateWeights()
 	for i = 1, GRID_WIDTH do
 		for j = 1, GRID_HEIGHT do
+			local c = grid[i][j]
 			-- Update the grid to new state
-			grid[i][j].act = grid[i][j].new_act
+			c.act = c.new_act
 			-- Update weights to minimize surprise, using the qudratic loss funtion
-			local err = -2 * (grid[i][j].act - grid[i][j].past_act)
-			local learningrate = (grid[i][j].learning^4 + MIN_LEARNING)
-			grid[i][j].past_err = grid[i][j].err
-			grid[i][j].err = err
+			local err = -2 * (c.act - c.past_act)
+			local learningrate = (c.learning^4 + MIN_LEARNING)
+			c.past_err = c.err
+			c.err = err
 			for w = 1, N_WEIGHTS do
 				local nI, nJ = wrapAroundGrid(i + weight_pos[w].x, j + weight_pos[w].y)
-				grid[i][j].past_weights[w] = grid[i][j].past_weights[w] +
-					learningrate * err * grid[i][j].act * grid[nI][nJ].past_act * grid[i][j].memory
-				grid[i][j].weights[w] = grid[i][j].weights[w] +
-					learningrate * err * grid[i][j].act * grid[nI][nJ].act
+				c.past_weights[w] = c.past_weights[w] +
+					learningrate * err * c.act * grid[nI][nJ].past_act * c.memory
+				c.past_weights[w] = loop(c.past_weights[w], -1, 1)
+				c.weights[w] = c.weights[w] +
+					learningrate * err * c.act * grid[nI][nJ].act
+				c.weights[w] = loop(c.weights[w], -1, 1)
 			end
 		end
 	end
@@ -160,6 +163,8 @@ function updateReproduction()
 				local nI, nJ = wrapAroundGrid(neighbor.x, neighbor.y)
 				local n = grid[nI][nJ]
 				local fitness = get_fitness(n) * neighbor.p
+						* (	math.tanh( math.abs(c.act - c.past_act + 0.5) * (c.act + n.past_act + 0.5) )/
+						math.tanh( math.abs(c.act - n.past_act + 0.5) * (c.act + c.past_act + 0.5) ) )^2
 				if fitness > bestFitness then
 					bestFitness = fitness
 					bestNeighbors = {{x = nI, y = nJ}}

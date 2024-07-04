@@ -1,12 +1,12 @@
--- loop x to be inbetween 0 and 1
-function loop(x)
-	if x < 0 then
-		x = math.abs(x)
-	end
-	if x > 1 then
-		x = 1 - (x - math.floor(x))
-	end
-	return x
+-- loop x to be between min and max
+function loop(x, min, max)
+    if x < min then
+        x = math.abs(x - min) + min
+    end
+    if x > max then
+        x = max - math.abs(x - max)
+    end
+    return x
 end
 
 -- Function to normalize indices and ensure looping around the grid
@@ -90,9 +90,9 @@ function get_fitness(self)
 	* math.tanh(MAX_ACT - self.act^2)
 	-- Penalize static patterns and high activation
 	- math.tanh(math.max(self.act, self.past_act, self.past2_act))^2
-	- math.tanh(math.min(self.act, self.past_act, self.past2_act))^2
+	- math.tanh(math.min(self.act, self.past_act, self.past2_act)*2)^2
 	-- Prevent blurr
-	- math.tanh(math.abs(self.err) * math.abs(self.past_err))/4
+	- math.tanh(math.abs(self.err) * math.abs(self.past_err))/8
 	return fitness
 end
 
@@ -122,9 +122,9 @@ function mutuate(i, j)
 		grid[i][j].past_weights[w] = grid[i][j].past_weights[k]
 		grid[i][j].weights[w] = grid[i][j].weights[k]
 	end
-	grid[i][j].learning = loop(grid[i][j].learning)
-	grid[i][j].memory = loop(grid[i][j].memory)
-	grid[i][j].color1 = loop(grid[i][j].color1)
+	grid[i][j].learning = loop(grid[i][j].learning, 0, 1)
+	grid[i][j].memory = loop(grid[i][j].memory, 0, 1)
+	grid[i][j].color1 = loop(grid[i][j].color1, 0, 1)
 end
 
 -- Copy Genes from another cell
