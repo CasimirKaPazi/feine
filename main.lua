@@ -177,7 +177,7 @@ function updateReproduction()
 			if bestFitness > math.max(0, selfFitness * (1+c.cooldown) + c.cooldown) then
 				local parent_pos = bestNeighbors[math.random(1, #bestNeighbors)]
 				copyGenes(i, j, parent_pos.x, parent_pos.y)
-				c.cooldown = 1
+				c.cooldown = c.cooldown + 1
 			else
 				copyGenes(i, j, i, j)
 				c.cooldown = c.cooldown * 0.75
