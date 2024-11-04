@@ -111,16 +111,21 @@ function mutuate(i, j)
 		grid[i][j].learning = mutate(grid[i][j].learning)
 	end
 	-- Modify weights
-	m = math.random(1,2)
-	if m == 1 then -- mutate random weight
+	m = math.random(1,5)
+	if m <= 3 then -- mutate random weight
 		local w = math.random(1, N_WEIGHTS)
 		grid[i][j].past_weights[w] = mutate(grid[i][j].past_weights[w]+0.5)-0.5
 		grid[i][j].weights[w] = mutate(grid[i][j].weights[w]+0.5)-0.5
-	elseif m == 2 then -- copy one weight onto another
+	elseif m == 4 then -- copy one weight onto another
 		local w = math.random(1, N_WEIGHTS)
 		local k = math.random(1, N_WEIGHTS)
 		grid[i][j].past_weights[w] = grid[i][j].past_weights[k]
 		grid[i][j].weights[w] = grid[i][j].weights[k]
+	elseif m == 5 then -- mix with neighbor
+		local nI, nJ = wrapAroundGrid(i + math.random(-1,1), j + math.random(-1,1))
+		if get_fitness(grid[nI][nJ]) > get_fitness(grid[i][j]) then
+			mixGenes(i, j, nI, nJ)
+		end
 	end
 	grid[i][j].learning = loop(grid[i][j].learning, 0, 1)
 	grid[i][j].memory = loop(grid[i][j].memory, 0, 1)
@@ -141,25 +146,25 @@ end
 function mixGenes(i, j, nI, nJ)
 	for w = 1, N_WEIGHTS do
 		if math.random(2) == 1 then
-			grid[i][j].new_past_weights[w] = grid[nI][nJ].past_weights[w]
+			grid[i][j].past_weights[w] = grid[nI][nJ].past_weights[w]
 		end
 		if math.random(2) == 1 then
-			grid[i][j].new_weights[w] = grid[nI][nJ].weights[w]
+			grid[i][j].weights[w] = grid[nI][nJ].weights[w]
 		end
 	end
 	if math.random(2) == 1 then
-		grid[i][j].new_color1 = grid[nI][nJ].color1
+		grid[i][j].color1 = grid[nI][nJ].color1
 	end
 	if math.random(2) == 1 then
-		grid[i][j].new_memory = grid[nI][nJ].memory
+		grid[i][j].memory = grid[nI][nJ].memory
 	end
 	if math.random(2) == 1 then
-		grid[i][j].new_learning = grid[nI][nJ].learning
+		grid[i][j].learning = grid[nI][nJ].learning
 	end
 end
 
 -- Calculate mutation for a gene
 function mutate(x)
 	-- This assumes that the variation of x is centerd around 0.5
-	return x + (math.random()-0.5) * 0.5 * (x+0.5)
+	return x + ( (math.random()-0.5) * 0.5 * (math.abs(x)+0.5) )^3 * 4
 end

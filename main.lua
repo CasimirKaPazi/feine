@@ -15,7 +15,7 @@ function love.load()
 	RANGE = 2 -- how far from origin weights are drawn
 	N_WEIGHTS = (RANGE * 2 + 1)^2 - 1 -- number of connections increases exponentially with range
 	MIN_LEARNING = 0.0001 -- found through trial and error. Affects the ratio between learning and evolution.
-	N_MUTATIONS = 5 -- mutations per 100x100 area per time step
+	N_MUTATIONS = 20 -- mutations per 100x100 area per time step
 	MAX_ACT = 10000
 	average_sum = 0
 	average_fitness = 0
@@ -163,8 +163,12 @@ function updateReproduction()
 				local nI, nJ = wrapAroundGrid(neighbor.x, neighbor.y)
 				local n = grid[nI][nJ]
 				local fitness = get_fitness(n) * neighbor.p
-						* (	math.tanh( math.abs(c.act - c.past_act + 0.5) * (c.act + n.past_act + 0.5) )/
-						math.tanh( math.abs(c.act - n.past_act + 0.5) * (c.act + c.past_act + 0.5) ) )^2
+					* math.tanh(
+					( math.abs(c.act - c.past_act + 0.5) * (c.act + n.past_act + 0.5) )/
+					( math.abs(c.act - n.past_act + 0.5) * (c.act + c.past_act + 0.5) )
+--					( math.abs(c.act - c.past_act) * (c.act + n.past_act) +1)/
+--					( math.abs(c.act - n.past_act) * (c.act + c.past_act) +1)
+					) / math.tanh(1)
 				if fitness > bestFitness then
 					bestFitness = fitness
 					bestNeighbors = {{x = nI, y = nJ}}
